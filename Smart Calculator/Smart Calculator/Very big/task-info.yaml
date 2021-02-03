@@ -1,0 +1,406 @@
+type: edu
+custom_name: stage8
+files:
+- name: test/Test.java
+  visible: true
+  text: |
+    import calculator.Main;
+    import org.hyperskill.hstest.v6.stage.BaseStageTest;
+    import org.hyperskill.hstest.v6.testcase.PredefinedIOTestCase;
+
+    import java.util.List;
+
+    public class Test extends BaseStageTest {
+
+        public Test() throws Exception {
+            super(Main.class);
+        }
+
+        @Override
+        public List<PredefinedIOTestCase> generate() {
+            return List.of(
+                    /* Check expressions with variables */
+                    new PredefinedIOTestCase(
+                            "a = 4\nb = 5\nc = 6\na*2+b*3+c*(2+3)\n/exit",
+                            "53\nBye!"
+                    ),
+                    /* Check reassignment */
+                    new PredefinedIOTestCase(
+                            "a = 1\na = 2\na = 3\na\n/exit",
+                            "3\nBye!"
+                    ),
+                    /* Check handling unknown commands */
+                    new PredefinedIOTestCase(
+                            "/command\n/exit",
+                            "Unknown command\nBye!"
+                    ),
+                    /* Check all operations */
+                    new PredefinedIOTestCase(
+                            "3 + 8 * ((4 + 3) * 2 + 1) - 6 / (2 + 1)\n/exit",
+                            "121\nBye!"
+                    ),
+                    /* Check with an invalid expressions */
+                    new PredefinedIOTestCase(
+                            "8 * 3 + 12 * (4 - 2)\n4 * (2 + 3\n4 + 3)\n/exit",
+                            "48\nInvalid expression\nInvalid expression\nBye!"
+                    ),
+                    /* Check expressions with large numbers */
+                    new PredefinedIOTestCase(
+                            "112234567890 + 112234567890 * (10000000999 - 999)\n/exit",
+                            "1122345679012234567890\nBye!"
+                    ),
+                    /* Check expressions with large numbers and variables */
+                    new PredefinedIOTestCase(
+                            "a = 800000000000000000000000\nb = 100000000000000000000000\na + b\n/exit",
+                            "900000000000000000000000\nBye!"
+                    ),
+                    /* Check reassignment with large numbers */
+                    new PredefinedIOTestCase(
+                            "n = 3\nn = 500000000000\nn = 20000000000000000000000\nn\n/exit",
+                            "20000000000000000000000\nBye!"
+                    )
+            );
+        }
+    }
+  learner_created: false
+- name: src/calculator/Main.java
+  visible: true
+  text: |
+    package calculator;
+
+    import java.util.Scanner;
+
+    public class Main {
+
+        public static void main(String[] args) {
+            Scanner scanner = new Scanner(System.in);
+            // put your code here
+        }
+    }
+  learner_created: false
+- name: src/calculator/Calculation.java
+  visible: true
+  text: |
+    package calculator;
+
+    import java.util.Deque;
+    import java.util.Map;
+    import java.util.regex.Matcher;
+    import java.util.regex.Pattern;
+
+    import static calculator.Postfix.*;
+
+    public class Calculation {
+        public static final String CALCULATION_REGEX = String.format("%s%s%s",
+                "^(?![/*^])(\\s*((?<![a-zA-Z])\\d+\\s*(?![a-zA-Z])|(?<!\\d)[a-zA-Z]+\\s*(?!\\d)",
+                        "|[-]+\\s*(?!\\W-[()])|[+]+\\s*(?!\\W-[()])|[*]+\\s*(?!\\W-[()])|",
+                        "[/]+\\s*(?!\\W-[()])|\\^+\\s*(?!\\W-[()])|[()]+\\s*))+$");
+
+        private VarAssigner assigner;
+        private Postfix postfix;
+
+        public Calculation(VarAssigner assigner, Postfix postfix) {
+            this.assigner = assigner;
+            this.postfix = postfix;
+        }
+
+        private final String regex = "([-+*/^]\\s+)|([-]?\\d+)|([a-zA-Z]+)";
+        private Pattern pattern = Pattern.compile(regex);
+
+        public void calculateResult() {
+            Map<String, String> map = assigner.getVariables();
+            Deque<String> stack = postfix.getStack();
+            String postfixResult = postfix.getPostfixResult();
+            Matcher matcher = pattern.matcher(postfixResult);
+            long result;
+            boolean unknown = false;
+            while (matcher.find()) {
+                String operator = matcher.group(1);
+                String number = matcher.group(2);
+                String var = matcher.group(3);
+                if (operator != null) {
+                    operator = operator.trim(); // regex catch operators with space -- "- ","* "
+                    result = performOperationDependOnOperator(operator, stack);
+                    String value = String.valueOf(result);
+                    stack.push(value);
+                }
+                if (number != null) {
+                    stack.push(number);
+                }
+                if (var != null && map.containsKey(var)) {
+                    String value = map.get(var);
+                    stack.push(value);
+                } else if (var != null && !map.containsKey(var)) {
+                    unknown = true;
+                    break;
+                }
+            }
+            if (unknown) {
+                System.out.println("Unknown variable");
+            } else {
+                result = Long.parseLong(stack.pop());
+                System.out.println(result);
+            }
+        }
+
+        public boolean isCalculation(Matcher matcher) {
+            return matcher.group(10) != null;
+        }
+
+        private long performOperationDependOnOperator(String operator, Deque<String> stack) {
+            long result = 0;
+            long number2 = Long.parseLong(stack.pop());
+            long number1 = Long.parseLong(stack.pop());
+            if (PLUS.equals(operator)) {
+                result = number1 + number2;
+            }
+            if (MINUS.equals(operator)) {
+                result = number1 - number2;
+            }
+            if (ASTERISK.equals(operator)) {
+                result = number1 * number2;
+            }
+            if (BACKSLASH.equals(operator)) {
+                result = number1 / number2;
+            }
+            if (DASH.equals(operator)) {
+                result = (long) Math.pow(number1, number2);
+            }
+            return result;
+        }
+    }
+  learner_created: true
+- name: src/calculator/VarAssigner.java
+  visible: true
+  text: |
+    package calculator;
+
+    import java.util.HashMap;
+    import java.util.Map;
+    import java.util.regex.Matcher;
+
+    public class VarAssigner {
+        public static final String VAR_ASSIGNMENT_REGEX = "^(([a-zA-z]+)\\s*=+\\s*((\\d+)|([a-zA-Z]+)\\s*))$";
+        public static final String INVALID_IDENTIFIER_REGEX =
+                "^(([\\W&&[^\\s]]+.*|[\\D&&[^\\s]]+\\d.*|[\\w&&[^a-zA-Z]]+[a-zA-Z].*|\\S+[\\W&&[^\\s]].*)\\s*=.*)$";
+        public static final String INVALID_ASSIGNMENT_REGEX =
+                String.format("%s%s", "(.*=+\\s*([\\W&&[^\\s]]+.*|[\\D&&[^\\s]]+\\s*\\d.*|",
+                        "[\\w&&[^a-zA-Z]]+\\s*[a-zA-Z].*|\\S+\\s*[\\W&&[^\\s]].*))$");
+
+        private Map<String, String> variables = new HashMap<>();
+
+            /*
+             Assignment to var:
+                - Groups: 1-5;
+             */
+        public void mapAssignment(Matcher matcher) {
+            String key = matcher.group(2);
+            String number = matcher.group(4);
+            String var = matcher.group(5);
+            if (number != null) {
+                variables.put(key, number);
+            }
+            if (var != null && variables.containsKey(var)) {
+                String value = variables.get(var);
+                variables.put(key, value);
+            } else if (var != null && !variables.containsKey(var)) {
+                System.out.println("Unknown variable");
+            }
+        }
+
+            /*
+           Invalid identifier:
+             - Groups: 6,7;
+           Invalid assignment:
+             - Groups: 8,9
+               */
+        public void isAssignmentCorrect(Matcher matcher) {
+            if (matcher.group(6) != null) {
+                System.out.println("Invalid identifier");
+            } else if (matcher.group(8) != null) {
+                System.out.println("Invalid assignment");
+            }
+        }
+
+        public boolean isAssignment(Matcher matcher) {
+            return matcher.group(1) != null;
+        }
+
+        public Map<String, String> getVariables() {
+            return variables;
+        }
+    }
+  learner_created: true
+- name: src/calculator/Postfix.java
+  visible: true
+  text: |-
+    package calculator;
+
+    import java.util.ArrayDeque;
+    import java.util.Deque;
+    import java.util.regex.Matcher;
+    import java.util.regex.Pattern;
+
+    public class Postfix {
+        private static final String LEFT_PARENTHESIS = "(";
+        private static final String RIGHT_PARENTHESIS = ")";
+        public static final String ASTERISK = "*";
+        public static final String BACKSLASH = "/";
+        public static final String PLUS = "+";
+        public static final String MINUS = "-";
+        public static final String DASH = "^";
+
+        private static boolean isCorrectOperator = true;
+        private static boolean hasBalancedBrackets = true;
+
+        private String postfixResult;
+        private Deque<String> stack = new ArrayDeque<>();
+        private StringBuilder postfix = new StringBuilder();
+
+        private final String regex = "([-]+)|([+]+)|([*/^]+)|([()])|(\\w+)";
+        private Pattern pattern = Pattern.compile(regex);
+
+        public void convertToPostfix(String infix) {
+            if (infix.startsWith(MINUS)) {
+                postfix.append(MINUS);
+                infix = infix.substring(1);
+            }
+            Matcher matcher = pattern.matcher(infix);
+            while (matcher.find()) {
+                String minusOperator = matcher.group(1);
+                String plusOperator = matcher.group(2);
+                String asteriskOrBackslash = matcher.group(3);
+                String parenthesis = matcher.group(4);
+                String digitOrVar = matcher.group(5);
+                if (minusOperator != null) {
+                    String result = checkIsItPlusOrMinus(minusOperator);
+                    pushOrPop(result);
+                }
+                if (plusOperator != null) {
+                    pushOrPop(PLUS);
+                }
+                if (asteriskOrBackslash != null) {
+                    if (hasCorrectLength(asteriskOrBackslash)) {
+                        pushOrPop(asteriskOrBackslash);
+                    } else {
+                        isCorrectOperator = false;
+                        break;
+                    }
+                }
+                if (parenthesis != null) {
+                    pushOrPop(parenthesis);
+                }
+                if (digitOrVar != null) {
+                    postfixAppend(digitOrVar);
+                }
+            }
+            ifValidAppendAll();
+            postfixResult = postfix.toString();
+            resetStringBuilder();  // otherwise will append to previous value
+        }
+
+        public boolean isExpressionValid() {
+            return !stack.contains(LEFT_PARENTHESIS)
+                    && isCorrectOperator
+                    && hasBalancedBrackets;
+        }
+
+        private void ifValidAppendAll() {
+            if (isExpressionValid()) {
+                stack.forEach(element -> postfixAppend(stack.pop()));
+            }
+        }
+
+        public void resetStack() {
+            stack.clear();
+        }
+
+        public Deque<String> getStack() {
+            return stack;
+        }
+
+        public String getPostfixResult() {
+            return postfixResult;
+        }
+
+        private void pushOrPop(String operator) {
+            if (stack.isEmpty() || LEFT_PARENTHESIS.equals(operator)) {
+                stack.push(operator);
+            } else if (RIGHT_PARENTHESIS.equals(operator)) {
+                ifStackContainsLeftAppendAndPopLeft();
+            } else {
+                comparePriorityAndAppend(operator);
+                stack.push(operator);
+            }
+        }
+
+        private void ifStackContainsLeftAppendAndPopLeft() {
+            if (stack.contains(LEFT_PARENTHESIS)) {
+                String head = stack.getFirst();
+                while (!LEFT_PARENTHESIS.equals(head)) {
+                    popAndAppendToResult();
+                    head = stack.getFirst();
+                }
+                stack.pop(); // left parenthesis
+            } else {
+                hasBalancedBrackets = false;
+            }
+        }
+
+        private void comparePriorityAndAppend(String operator) {
+            String head = stack.getFirst();
+            int headPriority = checkPriority(head);
+            int currentPriority = checkPriority(operator);
+            if (currentPriority <= headPriority && !LEFT_PARENTHESIS.equals(head)) {
+                while (!(checkPriority(head) < currentPriority || stack.isEmpty())) {
+                    head = stack.getFirst();
+                    if (!LEFT_PARENTHESIS.equals(head)) {
+                        popAndAppendToResult();
+                        break;
+                    }
+                }
+            }
+        }
+
+        private int checkPriority(String operator) {
+            final int lowPriority = 0;
+            final int midPriority = 1;
+            final int highPriority = 2;
+            int priority = lowPriority;
+            if (ASTERISK.equals(operator) || BACKSLASH.equals(operator)) {
+                priority = midPriority;
+            } else if (DASH.equals(operator)) {
+                priority = highPriority;
+            }
+            return priority;
+        }
+
+        private boolean hasCorrectLength(String asteriskOrBackslash) {
+            final int correctLength = 1;
+            int length = asteriskOrBackslash.length();
+            return length == correctLength;
+        }
+
+        private String checkIsItPlusOrMinus(String operator) {
+            // "--" = "+";
+            int length = operator.length();
+            return length % 2 == 1 ? MINUS : PLUS;
+        }
+
+        private void popAndAppendToResult() {
+            postfixAppend(stack.pop());
+        }
+
+        private void postfixAppend(String string) {
+            postfix.append(string).append(" ");
+        }
+
+        private void resetStringBuilder() {
+            postfix.delete(0, postfix.length());
+        }
+
+    }
+  learner_created: true
+feedback_link: https://hyperskill.org/projects/42/stages/227/implement
+status: Solved
+record: 8

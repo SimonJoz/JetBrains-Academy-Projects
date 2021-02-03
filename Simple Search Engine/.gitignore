@@ -1,0 +1,19 @@
+Simple Search Engine/task/build
+Simple Search Engine/Expand the search/
+Simple Search Engine/Inverted index search/
+Simple Search Engine/Search strategies
+Simple Search Engine/String theory
+Simple Search Engine/task/out
+Simple Search Engine/User menu
+Simple Search Engine/X-files
+lesson-info.yaml
+build.gradle
+course-info.yaml
+course-remote-info.yaml
+gradlew
+gradlew.bat
+settings.gradle
+.gradle
+.idea
+/gradle
+.DS_Store

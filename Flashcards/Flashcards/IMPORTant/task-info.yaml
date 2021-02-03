@@ -1,0 +1,526 @@
+type: edu
+custom_name: stage7
+files:
+- name: src/flashcards/app/IO/DataReader.java
+  visible: true
+  text: |
+    package flashcards.IO;
+
+
+    import java.util.Scanner;
+
+    import static flashcards.model.Log.addToLog;
+
+    public class DataReader {
+        private Scanner sc = new Scanner(System.in);
+
+        public String readString() {
+            String input = sc.nextLine();
+            addToLog(input);
+            return input;
+        }
+
+        public void scClose() {
+            String output = "Bye Bye!";
+            System.out.println(output);
+            addToLog(output);
+            sc.close();
+        }
+
+        public String readCardDefinition() {
+            String output = "The definition of the card:";
+            System.out.println(output);
+            String input = sc.nextLine();
+            addToLog(output);
+            addToLog(input);
+            return input;
+        }
+
+        public String readCardName() {
+            String output = "The card: ";
+            System.out.println(output);
+            String input = sc.nextLine();
+            addToLog(output);
+            addToLog(input);
+            return input;
+        }
+        public int readNoOfQuestions(){
+            String output = "How many times to ask?";
+            System.out.println(output);
+            int number = sc.nextInt();
+            sc.nextLine();
+            addToLog(output);
+            addToLog(String.valueOf(number));
+            return number;
+        }
+        public String redFileName(){
+            String output = "File name:";
+            System.out.println(output);
+            String input = sc.nextLine();
+            addToLog(output);
+            addToLog(input);
+            return input;
+        }
+
+        public String readOptionChoice(){
+            String output = "Input the action (add, remove, import, export, ask, exit, log, hardest card, reset stats):";
+            System.out.println(output);
+            String input = sc.nextLine();
+            addToLog(output);
+            addToLog(input);
+            return input;
+        }
+    }
+  learner_created: true
+- name: src/flashcards/app/IO/MyPrinter.java
+  visible: true
+  text: |
+    package flashcards.IO;
+
+    import static flashcards.model.Log.addToLog;
+
+    public class MyPrinter {
+        public static void printEnter() {
+            String message = "\n";
+            System.out.print(message);
+            addToLog(message);
+        }
+
+        public static void addedToMapMessage(String card, String definition) {
+            String message = "The pair (\"" + card + "\":\"" + definition + "\") has been added.";
+            System.out.println(message);
+            addToLog(message);
+        }
+
+        public static void mapContainsValueMessage(String definition) {
+            String message = "The definition \"" + definition + "\" already exists.";
+            System.out.println(message);
+            addToLog(message);
+        }
+
+        public static void mapContainsKeyMessage(String card) {
+            String message = "The card \"" + card + "\" already exists.";
+            System.out.println(message);
+            addToLog(message);
+        }
+
+        public static void cardRemovedMessage() {
+            String message = "The card has been removed.";
+            System.out.println(message);
+            addToLog(message);
+        }
+
+        public static void cannotRemoveMessage(String card) {
+            String message = "Can't remove \"" + card + "\": there is no such card.";
+            System.out.println(message);
+            addToLog(message);
+        }
+
+        public static void askForRandomValue(String randomKey) {
+            String message = "Print the definition of \"" + randomKey + "\":";
+            System.out.println(message);
+            addToLog(message);
+        }
+
+        public static void wrongAnswerMessage(String definition) {
+            String message = "Wrong answer. The correct one is \"" + definition + "\".";
+            System.out.println(message);
+            addToLog(message);
+        }
+
+        public static void answerEqualsDifferentCardDefinitionMessage(String definition, String card) {
+            String message = "Wrong answer, The correct one is \"" + definition + "\"," +
+                    " you've just written the definition of \"" + card + "\".";
+            System.out.println(message);
+            addToLog(message);
+        }
+
+        public static void correctAnswerMessage() {
+            String message = "Correct answer.";
+            System.out.println(message);
+            addToLog(message);
+        }
+
+        public static void cardsSavedMessage(int exportedCardsNo) {
+            String message = exportedCardsNo + " cards have been saved.";
+            System.out.println(message);
+            addToLog(message);
+        }
+
+        public static void importedCardsMessage(int importedCardsNo) {
+            if (importedCardsNo > 0) {
+                String message = importedCardsNo + " cards have been loaded.";
+                System.out.println(message);
+                addToLog(message);
+            }
+        }
+
+        public static void fileNotFoundMessage() {
+            String message = "File not found.";
+            System.out.println(message);
+            addToLog(message);
+        }
+
+        public static void logSavedMessage() {
+            String message = "The log has been saved.";
+            System.out.println(message);
+            addToLog(message);
+        }
+
+        public static void noHardestCardsMessage() {
+            String message = "There are no cards with errors.";
+            System.out.println(message);
+            addToLog(message);
+        }
+
+        public static void hardestCardsMessage(String cards, int errors) {
+            String str = "card is ";
+            if (cards.matches("\"\\w*\",.*")) {
+                str = "cards are ";
+            }
+            String message = "The hardest " + str + cards + ". You have " + errors + " errors answering them.";
+            System.out.println(message);
+            addToLog(message);
+        }
+        public static void statsResetMessage() {
+            String message = "Card statistics has been reset.";
+            System.out.println(message);
+            addToLog(message);
+        }
+
+
+    }
+  learner_created: true
+- name: src/flashcards/app/IO/file/FileManager.java
+  visible: true
+  learner_created: true
+- name: src/flashcards/app/model/Library.java
+  visible: true
+  text: |
+    package flashcards.model;
+
+
+    import java.io.Serializable;
+    import java.util.*;
+    import java.util.stream.Collectors;
+
+    public class Library implements Serializable {
+        public static final int INDEX_OF_FLASHCARDS_MAP = 0;
+        public static final int INDEX_OF_ERROR_COUNTER_MAP = 1;
+
+        private Map<String, String> flashcards = new HashMap<>();
+        private Map<String, Integer> errorsCounter = new HashMap<>();
+        private List<Map> list = List.of(flashcards, errorsCounter);
+
+        public void incrementErrorCount(String key) {
+            final Integer incrementer = 1;
+            Integer currentCount = errorsCounter.get(key);
+            errorsCounter.put(key, (currentCount + incrementer));
+        }
+
+        public void resetWrongAnswerStats() {
+            errorsCounter.keySet()
+                    .forEach(key -> errorsCounter.put(key, 0));
+        }
+
+        public String getCardKey(String value) {
+            return flashcards.keySet()
+                    .stream()
+                    .filter(k -> flashcards.get(k).equals(value))
+                    .reduce("", (empty, key) -> empty = key);
+        }
+
+        public String getRandomCard() {
+            Random random = new Random();
+            String[] keys = flashcards.keySet().toArray(String[]::new);
+            return keys[random.nextInt(keys.length)];
+        }
+
+        public Map<String, Integer> getHardestCardsMap() {
+            int max;
+            if (errorsCounter.isEmpty()) {
+                return new HashMap<>(0);
+            } else {
+                max = Collections.max(errorsCounter.values());
+            }
+            return errorsCounter.entrySet()
+                    .stream()
+                    .filter(k -> k.getValue().equals(max))
+                    .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+        }
+
+        public List<Map> getList() {
+            return list;
+        }
+
+        public Map<String, String> getFlashcards() {
+            return flashcards;
+        }
+
+        public Map<String, Integer> getErrorsCounter() {
+            return errorsCounter;
+        }
+    }
+  learner_created: true
+- name: src/flashcards/app/model/Log.java
+  visible: true
+  text: |
+    package flashcards.model;
+
+    import java.util.ArrayList;
+    import java.util.List;
+
+    public class Log {
+        private static List<String> log = new ArrayList<>();
+
+        public static List<String> getLog() {
+            return log;
+        }
+
+        public static void addToLog(String text) {
+            log.add(text);
+        }
+    }
+  learner_created: true
+- name: src/flashcards/app/controller/ConsoleControl.java
+  visible: true
+  learner_created: true
+- name: src/flashcards/app/controller/LibraryControl.java
+  visible: true
+  text: |+
+    package flashcards.Controller;
+
+    import flashcards.IO.DataReader;
+    import flashcards.model.Library;
+
+    import java.util.Collections;
+    import java.util.Map;
+
+    import static flashcards.IO.MyPrinter.*;
+
+    class LibraryControl {
+        private DataReader reader;
+        private Library library;
+
+        LibraryControl(DataReader reader, Library library) {
+            this.reader = reader;
+            this.library = library;
+        }
+
+        void add() {
+            Map<String, String> flashcards = library.getFlashcards();
+            String card = getCard();
+            if (flashcards.containsKey(card)) {
+                mapContainsKeyMessage(card);
+            } else {
+                String definition = reader.readCardDefinition();
+                if (flashcards.containsValue(definition)) {
+                    mapContainsValueMessage(definition);
+                } else {
+                    flashcards.put(card, definition);
+                    library.getErrorsCounter().put(card, 0);
+                    addedToMapMessage(card, definition);
+                }
+            }
+        }
+
+        void remove() {
+            Map<String, String> flashcards = library.getFlashcards();
+            String card = getCard();
+            if (flashcards.containsKey(card)) {
+                flashcards.remove(card);
+                library.getErrorsCounter().remove(card);
+                cardRemovedMessage();
+            } else {
+                cannotRemoveMessage(card);
+            }
+        }
+
+        void ask() {
+            Map<String, String> flashcards = library.getFlashcards();
+            int number = reader.readNoOfQuestions();
+            for (int i = 0; i < number; i++) {
+                String randomKey = library.getRandomCard();
+                askForRandomValue(randomKey);
+                String answer = reader.readString();
+                String definition = flashcards.get(randomKey);
+                if (!answer.equals(definition)) {
+                    library.incrementErrorCount(randomKey);
+                    if (flashcards.containsValue(answer)) {
+                        String card = library.getCardKey(answer);
+                        answerEqualsDifferentCardDefinitionMessage(definition, card);
+                    } else {
+                        wrongAnswerMessage(definition);
+                    }
+                } else {
+                    correctAnswerMessage();
+                }
+            }
+        }
+
+        void hardestCard() {
+            int errorsMax = 0;
+            Map<String, Integer> hardestCards = library.getHardestCardsMap();
+            if (!hardestCards.isEmpty()) {
+                String cards = getHardestCardsString(hardestCards);
+                errorsMax = Collections.max(hardestCards.values());
+                if (errorsMax != 0) {
+                    hardestCardsMessage(cards, errorsMax);
+                }else noHardestCardsMessage();
+            } else noHardestCardsMessage();
+        }
+
+        private String getHardestCardsString(Map<String, Integer> hardestCards) {
+            String cards = hardestCards.keySet()
+                    .stream()
+                    .reduce("", (card, next) -> card += "\"" + next + "\" ");
+            return cards.trim().replaceAll(" ", ", ");
+        }
+
+        private String getCard() {
+            return reader.readCardName();
+        }
+    }
+
+  learner_created: true
+- name: src/flashcards/app/controller/MainControl.java
+  visible: true
+  text: |+
+    package flashcards.Controller;
+
+    import flashcards.IO.DataReader;
+    import flashcards.IO.file.FileManager;
+    import flashcards.model.Library;
+
+    import java.io.File;
+    import java.util.Map;
+
+    import static flashcards.IO.MyPrinter.*;
+    import static flashcards.IO.MyPrinter.importedCardsMessage;
+    import static flashcards.model.Library.INDEX_OF_FLASHCARDS_MAP;
+    import static flashcards.model.Library.INDEX_OF_ERROR_COUNTER_MAP;
+
+    public class MainControl {
+        private DataReader reader = new DataReader();
+        private Library library = new Library();
+        private FileManager fileManager = new FileManager(library);
+        private LibraryControl libraryControl = new LibraryControl(reader, library);
+
+        public void mainLoop() {
+            String option;
+            do {
+                option = getOptionChoice();
+                switch (option.toUpperCase()) {
+                    case "EXIT":
+                        exit();
+                        break;
+                    case "ADD":
+                        libraryControl.add();
+                        break;
+                    case "REMOVE":
+                        libraryControl.remove();
+                        break;
+                    case "ASK":
+                        libraryControl.ask();
+                        break;
+                    case "EXPORT":
+                        export();
+                        break;
+                    case "IMPORT":
+                        importData();
+                        break;
+                    case "LOG":
+                        exportLog();
+                        break;
+                    case "HARDEST CARD":
+                        libraryControl.hardestCard();
+                        break;
+                    case "RESET STATS":
+                        resetStats();
+                        break;
+                }
+                printEnter();
+            } while (!option.equals("EXIT"));
+        }
+
+        private void importData() {
+            String fileName = reader.redFileName();
+            File file = new File(fileName);
+            boolean isFileExist = file.exists();
+            if (!isFileExist)
+                fileNotFoundMessage();
+            else {
+                Map<String, String> importedFlashcardsMap =
+                        fileManager.importData(fileName, INDEX_OF_FLASHCARDS_MAP);
+                Map<String, Integer> importedErrorsMap =
+                        fileManager.importData(fileName, INDEX_OF_ERROR_COUNTER_MAP);
+
+                int importedCardsNo = importedFlashcardsMap.size();
+                importedCardsMessage(importedCardsNo);
+                library.getFlashcards().putAll(importedFlashcardsMap);
+                library.getErrorsCounter().putAll(importedErrorsMap);
+            }
+        }
+
+        private void export() {
+            String fileName = reader.redFileName();
+            fileManager.exportData(fileName);
+            Map<String, String> map = library.getFlashcards();
+            int exportedCardsNo = map.size();
+            cardsSavedMessage(exportedCardsNo);
+        }
+
+        private void exportLog() {
+            String fileName = reader.redFileName();
+            fileManager.exportLog(fileName);
+            logSavedMessage();
+        }
+
+        private void resetStats() {
+            library.resetWrongAnswerStats();
+            statsResetMessage();
+        }
+
+
+        private String getOptionChoice() {
+            return reader.readOptionChoice();
+        }
+
+
+        private void exit() {
+            reader.scClose();
+            System.exit(0);
+        }
+    }
+
+  learner_created: true
+- name: src/flashcards/app/Main.java
+  visible: true
+  text: |+
+    package flashcards.app;
+
+    import flashcards.Controller.MainControl;
+
+    public class Main {
+        public static void main(String[] args) {
+            MainControl mainControl = new MainControl();
+            mainControl.mainLoop();
+        }
+    }
+
+  learner_created: true
+- name: src/flashcards/app/model/Definition.java
+  visible: true
+  learner_created: true
+- name: capitals.txt
+  visible: true
+  learner_created: true
+- name: capitalsNew.txt
+  visible: true
+  learner_created: true
+- name: testLog.txt
+  visible: true
+  learner_created: true
+feedback_link: https://hyperskill.org/projects/44/stages/238/implement
+status: Solved
+record: 7

@@ -1,0 +1,165 @@
+type: edu
+custom_name: stage7
+files:
+- name: test/Test.java
+  visible: true
+  text: |
+    import calculator.Main;
+    import org.hyperskill.hstest.v6.stage.BaseStageTest;
+    import org.hyperskill.hstest.v6.testcase.PredefinedIOTestCase;
+
+    import java.util.List;
+
+    public class Test extends BaseStageTest {
+
+        public Test() throws Exception {
+            super(Main.class);
+        }
+
+        @Override
+        public List<PredefinedIOTestCase> generate() {
+            return List.of(
+                    /* Check simple additions and subtractions */
+                    new PredefinedIOTestCase(
+                            "4 + 6 - 8\n\n\n2 - 3 - 4\n\n8 + 7 - 4\n1 +++ 2 * 3 -- 4\n/exit",
+                            "2\n-5\n11\n11\nBye!"
+                    ),
+                    /* Check handling unknown commands */
+                    new PredefinedIOTestCase(
+                            "/command\n/exit",
+                            "Unknown command\nBye!"
+                    ),
+                    /* Check all operations */
+                    new PredefinedIOTestCase(
+                            "3 + 8 * ((4 + 3) * 2 + 1) - 6 / (2 + 1)\n/exit",
+                            "121\nBye!"
+                    ),
+                    /* Check with an invalid expressions */
+                    new PredefinedIOTestCase(
+                            "8 * 3 + 12 * (4 - 2)\n4 * (2 + 3\n4 + 3)\n/exit",
+                            "48\nInvalid expression\nInvalid expression\nBye!"
+                    ),
+                    /* Check expressions with variables */
+                    new PredefinedIOTestCase(
+                            "a = 4\nb = 5\nc = 6\na*2+b*3+c*(2+3)\n/exit",
+                            "53\nBye!"
+                    ),
+                    /* Check reassignment */
+                    new PredefinedIOTestCase(
+                            "a = 1\na = 2\na = 3\na\n/exit",
+                            "3\nBye!"
+                    )
+            );
+        }
+    }
+  learner_created: false
+- name: src/calculator/Main.java
+  visible: true
+  text: |
+    package calculator;
+
+    import java.util.Scanner;
+
+    public class Main {
+
+        public static void main(String[] args) {
+            Scanner scanner = new Scanner(System.in);
+            // put your code here
+        }
+    }
+  learner_created: false
+- name: src/calculator/Calculation.java
+  visible: true
+  text: |
+    package calculator;
+
+    import java.util.Map;
+    import java.util.regex.Matcher;
+    import java.util.regex.Pattern;
+
+    public class Calculation {
+        public static final String CALCULATION_REGEX =
+                "^(\\s*((?<![a-zA-Z])\\d+(?![a-zA-Z])|(?<!\\d)[a-zA-Z]+(?!\\d)|[-+]+)\\s*)+$";
+        private VarAssigner assigner;
+
+        public Calculation(VarAssigner assigner) {
+            this.assigner = assigner;
+        }
+
+        public void sum(String input) {
+            String regex = "([-+]+)|(\\d+)|([a-zA-Z]+)";
+            Map<String, Long> map = assigner.getVariables();
+            Pattern pattern = Pattern.compile(regex);
+            Matcher matcher = pattern.matcher(input);
+            long sum = 0L;
+            boolean minus = false;
+            boolean unknown = false;
+            while (matcher.find()) {
+                String sing = matcher.group(1);
+                String digit = matcher.group(2);
+                String var = matcher.group(3);
+                long num = 0;
+                if (sing != null) {
+                    int length = sing.replaceAll("[^-]", "").length();
+                    minus = length % 2 == 1;
+                }
+                if (digit != null) {
+                    num = Long.parseLong(digit);
+                }
+                if (var != null && map.containsKey(var)) {
+                    num = map.get(var);
+                } else if (var != null && !map.containsKey(var)) {
+                    unknown = true;
+                    break;
+                }
+                sum += minus ? -num : num;
+            }
+            if (unknown) {
+                System.out.println("Unknown variable");
+            } else {
+                System.out.println(sum);
+            }
+        }
+
+        public boolean isCalculation(Matcher matcher) {
+            return matcher.group(10) != null;
+        }
+    }
+  learner_created: true
+- name: src/calculator/VarAssigner.java
+  visible: true
+  text: "package calculator;\n\nimport java.util.HashMap;\nimport java.util.Map;\n\
+    import java.util.regex.Matcher;\n\npublic class VarAssigner {\n    public static\
+    \ final String VAR_ASSIGNMENT_REGEX = \"^(([a-zA-z]+)\\\\s*=+\\\\s*((\\\\d+)|([a-zA-Z]+)\\\
+    \\s*))$\";\n    public static final String INVALID_IDENTIFIER_REGEX =\n      \
+    \      \"^(([\\\\W&&[^\\\\s]]+.*|[\\\\D&&[^\\\\s]]+\\\\d.*|[\\\\w&&[^a-zA-Z]]+[a-zA-Z].*|\\\
+    \\S+[\\\\W&&[^\\\\s]].*)\\\\s*=.*)$\";\n    public static final String INVALID_ASSIGNMENT_REGEX\
+    \ =\n            \"(.*=+\\\\s*([\\\\W&&[^\\\\s]]+.*|[\\\\D&&[^\\\\s]]+\\\\s*\\\
+    \\d.*|\" +\n                    \"[\\\\w&&[^a-zA-Z]]+\\\\s*[a-zA-Z].*|\\\\S+\\\
+    \\s*[\\\\W&&[^\\\\s]].*))$\";\n    private Map<String, Long> variables = new HashMap<>();\n\
+    \n    /*\n     Assignment to var:\n        -- ^(([a-zA-z]+)\\s*=+\\s*((\\d+)|([a-zA-Z]+)\\\
+    s*)$\n        -- Groups: 1-5;\n     */\n    public void mapAssignment(Matcher\
+    \ matcher) {\n        String key = matcher.group(2);\n        String digit = matcher.group(4);\n\
+    \        String var = matcher.group(5);\n        Long value;\n        if (digit\
+    \ != null) {\n            value = Long.parseLong(digit);\n            variables.put(key,\
+    \ value);\n        }\n        if (var != null && variables.containsKey(var)) {\n\
+    \            value = variables.get(var);\n            variables.put(key, value);\n\
+    \        } else if (var != null && !variables.containsKey(var)) {\n          \
+    \  System.out.println(\"Unknown variable\");\n        }\n    }\n\n    public boolean\
+    \ isAssignment(Matcher matcher) {\n        return matcher.group(1) != null;\n\
+    \    }\n    \n    public void isAssignmentCorrect(Matcher matcher) {\n       \
+    \ if (matcher.group(6) != null) {\n            System.out.println(\"Invalid identifier\"\
+    );\n        } else if (matcher.group(8) != null) {\n            System.out.println(\"\
+    Invalid assignment\");\n        }\n             /*\n\n    Invalid identifier:\n\
+    \      ---  ^(([\\W&&[^\\s]]+.*|[\\D&&[^\\s]]+\\d.*|[\\w&&[^a-zA-Z]]+[a-zA-Z].*|\\\
+    S+[\\W&&[^\\s]].*)\\s*=)\n      ---  Groups: 6,7;\n    Invalid assignment:\n \
+    \     --- (=+\\s*([\\W&&[^\\s]]+.*|[\\D&&[^\\s]]+\\d.*|[\\w&&[^a-zA-Z]]+[a-zA-Z].*|\\\
+    S+[\\W&&[^\\s]].*))$\n      ---  Groups: 8,9\n\n    */\n    }\n\n    public Map<String,\
+    \ Long> getVariables() {\n        return variables;\n    }\n\n\n}\n"
+  learner_created: true
+- name: src/calculator/Postfix.java
+  visible: true
+  learner_created: true
+feedback_link: https://hyperskill.org/projects/42/stages/226/implement
+status: Solved
+record: 7
